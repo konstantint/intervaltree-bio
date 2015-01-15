@@ -1,0 +1,4 @@
+Version 0.6
+-------------
+
+    - Extracted genome-related code into a separate package from https://github.com/konstantint/PyIntervalTree (version 0.5).
