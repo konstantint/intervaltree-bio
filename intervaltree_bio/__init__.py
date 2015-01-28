@@ -224,3 +224,7 @@ class GenomeIntervalTree(defaultdict):
         for chrom, lst in getattr(interval_lists, 'iteritems', interval_lists.items)():
             gtree[chrom] = IntervalTree(lst)        
         return gtree
+
+    def __reduce__(self):
+        t = defaultdict.__reduce__(self)
+        return (t[0], ()) + t[2:]
