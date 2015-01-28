@@ -1,4 +1,4 @@
-Version 1.0
+Version 1.0.0
 -------------
 
     - Replaced dash in the package name to underscore, as it seemed to confuse the package manager (python setup.py develop would fail on packages attempting to use intervaltree).

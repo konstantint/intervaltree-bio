@@ -25,7 +25,7 @@ class PyTest(TestCommand):
         sys.exit(pytest.main(self.test_args))
 
 
-version = '1.0'
+version = '1.0.0'
 setup(
     name = 'intervaltree_bio',
     version = version,
