@@ -44,7 +44,24 @@ class UCSCTable(object):
     def ENS_GENE(line):
         return dict(zip(UCSCTable.ENS_GENE_FIELDS, line.split(b'\t')))
 
-
+class IntervalMakers(object):
+    '''A container class for interval-making functions, used in GenomeIntervalTree.from_table and GenomeIntervalTree.from_bed.'''
+    
+    @staticmethod
+    def TX(d):
+        return [Interval(int(d['txStart']), int(d['txEnd']), d)]
+    
+    @staticmethod
+    def CDS(d):
+        return [Interval(int(d['cdsStart']), int(d['cdsEnd']), d)]
+        
+    @staticmethod
+    def EXONS(d):
+        exStarts = d['exonStarts'].split(b',')
+        exEnds = d['exonEnds'].split(b',')
+        for i in range(int(d['exonCount'])):
+            yield Interval(int(exStarts[i]), int(exEnds[i]), d)
+    
 def _fix(interval):
     '''
     Helper function for ``GenomeIntervalTree.from_bed and ``.from_table``.
@@ -88,7 +105,7 @@ class GenomeIntervalTree(defaultdict):
         return sum([len(tree) for tree in self.values()])
 
     @staticmethod
-    def from_bed(fileobj, field_sep=b'\t'):
+    def from_bed(fileobj, field_sep=b'\t', interval_maker=None):
         '''
         Initialize a ``GenomeIntervalTree`` from a BED file.
         Each line of the file must consist of several fields, separated using ``field_sep``.
@@ -98,6 +115,9 @@ class GenomeIntervalTree(defaultdict):
         
         Each Interval in the tree has its data field set to a list with "remaining" fields,
         i.e. interval.data[0] should be the ``name``, interval.data[1] is the ``score``, etc.
+        
+        if the ``interval_maker`` parameter is not None, intervals are created by calling this function with the BED line split into fields as input.
+        The function must return an iterable of ``Interval`` objects.
         
         Example::
             >>> test_url = 'http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeAwgTfbsUniform/wgEncodeAwgTfbsBroadDnd41Ezh239875UniPk.narrowPeak.gz'
@@ -121,7 +141,11 @@ class GenomeIntervalTree(defaultdict):
             if ln.endswith(b'\n'):
                 ln = ln[0:-1]
             ln = ln.split(field_sep)
-            interval_lists[ln[0]].append(_fix(Interval(int(ln[1]), int(ln[2]), data=ln[3:])))
+            if interval_maker is not None:
+                for interval in interval_maker(ln):
+                    interval_lists[ln[0]].append(_fix(interval))
+            else:
+                interval_lists[ln[0]].append(_fix(Interval(int(ln[1]), int(ln[2]), data=ln[3:])))
         gtree = GenomeIntervalTree()
         for k, v in getattr(interval_lists, 'iteritems', interval_lists.items)():
             gtree[k] = IntervalTree(v)
@@ -149,6 +173,10 @@ class GenomeIntervalTree(defaultdict):
         The mode, in which genes are mapped to intervals is specified via the ``mode`` parameter. The value can be ``tx``, ``cds`` and
         ``exons``, corresponding to the three mentioned possiblities.
         
+        If a more specific way of interval-mapping is required (e.g. you might want to create 'coding-region+-10k' intervals), you can provide
+        an "interval-maker" function as the ``mode`` parameter. An interval-maker function takes as input a dictionary, returned by the parser,
+        and returns an iterable of Interval objects.
+        
         The ``parser`` function must ensure that its output contains the field named ``chrom``, and also fields named ``txStart``/``txEnd`` if ``mode=='tx'``,
         fields ``cdsStart``/``cdsEnd`` if ``mode=='cds'``, and fields ``exonCount``/``exonStarts``/``exonEnds`` if ``mode=='exons'``.
         
@@ -172,22 +200,24 @@ class GenomeIntervalTree(defaultdict):
             fileobj = BytesIO(data)
         
         interval_lists = defaultdict(list)
+
+        if mode == 'tx':
+            interval_maker = IntervalMakers.TX
+        elif mode == 'cds':
+            interval_maker = IntervalMakers.CDS
+        elif mode == 'exons':
+            interval_maker = IntervalMakers.EXONS
+        elif getattr(mode, __call__, None) is None:
+            raise Exception("Parameter `mode` may only be 'tx', 'cds', 'exons' or a callable")
+        else:
+            interval_maker = mode
         
         for ln in fileobj:
             if ln.endswith(b'\n'):
                 ln = ln[0:-1]
             d = parser(ln)
-            if mode == 'tx':
-                interval_lists[d['chrom']].append(_fix(Interval(int(d['txStart']), int(d['txEnd']), d)))
-            elif mode == 'cds':
-                interval_lists[d['chrom']].append(_fix(Interval(int(d['cdsStart']), int(d['cdsEnd']), d)))
-            elif mode == 'exons':
-                exStarts = d['exonStarts'].split(b',')
-                exEnds = d['exonEnds'].split(b',')
-                for i in range(int(d['exonCount'])):
-                    interval_lists[d['chrom']].append(_fix(Interval(int(exStarts[i]), int(exEnds[i]), d)))
-            else:
-                raise Exception("Parameter `mode` may only be 'tx', 'cds' or 'exons'")
+            for interval in interval_maker(d):
+                interval_lists[d['chrom']].append(_fix(interval))
                 
         # Now convert interval lists into trees
         gtree = GenomeIntervalTree()

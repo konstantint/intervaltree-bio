@@ -25,9 +25,9 @@ class PyTest(TestCommand):
         sys.exit(pytest.main(self.test_args))
 
 
-version = '0.6'
+version = '1.0'
 setup(
-    name = 'intervaltree-bio',
+    name = 'intervaltree_bio',
     version = version,
     description = 'Interval tree convenience classes for genomic data',
     long_description=open("README.rst").read(),

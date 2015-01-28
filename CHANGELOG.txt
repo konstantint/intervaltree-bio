@@ -1,3 +1,10 @@
+Version 1.0
+-------------
+
+    - Replaced dash in the package name to underscore, as it seemed to confuse the package manager (python setup.py develop would fail on packages attempting to use intervaltree).
+      Formally, it's a new package now. The package with the dash in the name had to be removed completely from PyPI 
+    - Added the the possibility to specify an interval_maker in GenomeIntervalTree's methods from_bed and from_table.
+
 Version 0.6
 -------------
 
