@@ -216,8 +216,9 @@ class GenomeIntervalTree(defaultdict):
             interval_maker = mode
 
         for ln in fileobj:
-            if ln.endswith(b'\n'):
-                ln = ln[0:-1]
+            if not isinstance(ln, bytes):
+                ln = ln.encode()
+            ln = ln.strip()
             d = parser(ln)
             for interval in interval_maker(d):
                 interval_lists[d['chrom']].append(_fix(interval))
