@@ -174,7 +174,7 @@ class GenomeIntervalTree(defaultdict):
         corresponding to its exons (``exonStarts``..``exonEnds``).
 
         The mode, in which genes are mapped to intervals is specified via the ``mode`` parameter. The value can be ``tx``, ``cds`` and
-        ``exons``, corresponding to the three mentioned possiblities.
+        ``exons``, corresponding to the three mentioned possibilities.
 
         If a more specific way of interval-mapping is required (e.g. you might want to create 'coding-region+-10k' intervals), you can provide
         an "interval-maker" function as the ``mode`` parameter. An interval-maker function takes as input a dictionary, returned by the parser,
